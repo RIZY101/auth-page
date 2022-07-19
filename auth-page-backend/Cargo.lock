@@ -102,6 +102,7 @@ dependencies = [
 name = "auth-page-backend"
 version = "0.1.0"
 dependencies = [
+ "rand",
  "rocket",
 ]
 
