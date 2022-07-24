@@ -1,7 +1,14 @@
 #[macro_use] extern crate rocket;
 use rand::seq::SliceRandom;
+use rocket::form::{Form, Strict};
 
 const MNEMONICS: &'static [&'static str] = &["Please Excuse My Dear Aunt Sally", "Eggs Are Deliciously Good Breakfast Energy", "Fat Alley Cats Eat Alot Of Garbage", "All Cows Eat Lots Of Green Grass", "Goblins Bring Death For All Creatures"];
+
+#[derive(FromForm)]
+struct User {
+    email: String,
+    password: String
+}
 
 fn get_mnemonic() -> String {
     MNEMONICS
@@ -30,7 +37,18 @@ fn mnemonic() -> String {
     format!("Mnemonic: {}. So your password is {}!", rand_mnemonic, pass)
 }
 
+#[post("/create/password", data = "<new_user>")]
+fn new_password_user(new_user: Form<User>) -> &'static str {
+    "Password Account Created"
+}
+
+#[post("/create/mnemonic", data = "<new_user>")]
+fn new_mnemonic_user(new_user: Form<User>) -> &'static str {
+    "Mnemonic Account Created"
+}
+
+
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, mnemonic])
+    rocket::build().mount("/", routes![index, mnemonic, new_password_user, new_mnemonic_user])
 }
