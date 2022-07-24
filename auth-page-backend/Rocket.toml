@@ -1,0 +1,3 @@
+[default.tls]
+key = "/home/rizins/auth-page/auth-page-backend/ssl/private-key.pem"     # Path or bytes to DER-encoded ASN.1 PKCS#1/#8 key.
+certs = "/home/rizins/auth-page/auth-page-backend/ssl/cert.pem" # Path or bytes to DER-encoded X.509 TLS cert chain.
