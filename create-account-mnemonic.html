@@ -6,14 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Auth Experiment</title>
     <meta name="description" content="Auth Experiment">
-
     <!-- Pico.css -->
-    <link rel="stylesheet" href="css/pico.min.css">
-    
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
   </head>
 
   <body>
-
     <!-- Nav -->
     <nav class="container-fluid">
     </nav><!-- ./ Nav -->
@@ -26,10 +23,10 @@
             <h1>Create Account</h1>
             <h2>Mnemonic Passphrase</h2>
           </hgroup>
-          <form>
+          <form action="/create/mnemonic" method="POST">
             <input type="text" name="email" placeholder="Email" aria-label="Email" autocomplete="nickname" required>
             <input type="" name="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required>
-            <button type="submit" class="contrast" onclick="event.preventDefault()">Create</button>
+            <button type="submit" class="contrast">Create</button>
           </form>
         </div>
         <div>
@@ -45,9 +42,6 @@
     <footer class="container-fluid">
       <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
     </footer><!-- ./ Footer -->
-
-
   </body>
-
 </html>
 
