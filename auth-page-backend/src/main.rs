@@ -2,34 +2,29 @@
 use rocket::response::content;
 use rocket::response::Redirect;
 use rand::Rng;
-use rand::seq::SliceRandom;
-use rocket::form::{Form, Strict};
+use rocket::form::{Form};
 use std::fs::File;
-use std::io::{self, BufRead, BufWriter, Write};
+use std::io::{self, BufRead, Write};
 use std::path::Path;
+use chrono;
 
-const MNEMONICS: &'static [&'static str] = &["Please Excuse My Dear Aunt Sally 12", "Eggs Are Deliciously Good Breakfast Energy 34", "Fat Alley Cats Eat Alot Of Garbage 56", "All Cows Eat Lots Of Green Grass 78", "Goblins Bring Death For All Creatures 91"];
+//const MNEMONICS: &'static [&'static str] = &["Please Excuse My Dear Aunt Sally 12", "Eggs Are Deliciously Good Breakfast Energy 34", "Fat Alley Cats Eat Alot Of Garbage 56", "All Cows Eat Lots Of Green Grass 78", "Goblins Bring Death For All Creatures 91"];
 const MNEMONICS_PASS: &'static [&'static str] = &["PEMDAS12", "EADGBE34", "FACEAOG45", "ACELOGG78", "GBDFAC91"];
+
+//enum DbContent {
+//    Password,
+//    Date,
+//    Time,
+//    TimeCode,
+//    LoginAttempts,
+//    ForgotPasswordUses,
+//    LoginSuccesses
+//}
 
 #[derive(FromForm)]
 struct User {
     email: String,
     password: String
-}
-
-fn get_mnemonic() -> String {
-    MNEMONICS
-    .choose(&mut rand::thread_rng())
-    .unwrap()
-    .to_string()
-}
-
-fn get_password_from_mnemonic(mnemonic: &String) -> String {
-    let initials: String = mnemonic
-    .split(" ")                     // create an iterator, yielding words
-    .flat_map(|s| s.chars().nth(0)) // get the first char of each word
-    .collect();                     // collect the result into a String
-    return initials
 }
 
 fn contains_at(new_user: &Form<User>) -> bool {
@@ -70,6 +65,12 @@ fn mnemoic_in_list(new_user: &Form<User>) -> bool {
     }
 }
 
+fn increment(str: String) -> String {
+    let mut integer = str.parse::<i32>().unwrap();
+    integer += 1;
+    integer.to_string()
+}
+
 //Function source code from: https://doc.rust-lang.org/rust-by-example/std_misc/file/read_lines.html
 // The output is wrapped in a Result to allow matching on errors
 // Returns an Iterator to the Reader of the lines of the file.
@@ -79,13 +80,17 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
-fn setup_db() {
-    let _ = File::create("target/test.db");
+fn create_db(new_user: &Form<User>) {
+    let path = String::from(format!("target/{}.db", new_user.email));
+    let db_contents = String::from(format!("{} {} 0 0 0", new_user.password, chrono::offset::Utc::now()));
+    let mut file = File::create(path).unwrap();
+    file.write(db_contents.as_bytes()).unwrap();
 }
 
-fn read_db() -> Vec<String> {
+fn read_db(user: &Form<User>) -> Vec<String> {
+    let path = String::from(format!("target/{}.db", user.email));
     let mut lines_vec = vec![];
-    if let Ok(lines) = read_lines("target/test.db") {
+    if let Ok(lines) = read_lines(path) {
         for line in lines {
             if let Ok(one_line) = line {
                 lines_vec.push(one_line.to_string());
@@ -95,11 +100,11 @@ fn read_db() -> Vec<String> {
     return lines_vec
 }
 
-fn write_db(lines_vec: &mut Vec<String>) {
-    let mut file = File::create("target/test.db").unwrap();
-    for line in lines_vec {
-        file.write(line.as_bytes()).unwrap();
-    }   
+fn write_db(line: String, user: &Form<User>) {
+    let path = String::from(format!("target/{}.db", user.email));
+    let mut file = File::create(path).unwrap();
+    file.write(line.as_bytes()).unwrap();
+
 }
 
 #[get("/")]
@@ -145,6 +150,52 @@ fn index() -> content::RawHtml<&'static str> {
       </body>
     </html>    
     "#)
+}
+
+#[get("/login")]
+fn login() -> content::RawHtml<&'static str> {
+    content::RawHtml(r#"
+    <!doctype html>
+    <html lang="en">
+    
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Auth Experiment</title>
+        <meta name="description" content="Auth Experiment">
+        <!-- Pico.css -->
+        <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"> 
+      </head>
+    
+      <body>
+        <!-- Nav -->
+        <nav class="container-fluid">
+        </nav><!-- ./ Nav -->
+    
+        <!-- Main -->
+        <main class="container">
+          <article class="grid">
+            <div>
+              <hgroup>
+                <h1>Login</h1>
+                <h2>Use Password/Mnemonic</h2>
+              </hgroup>
+              <form action="/login/verify" method="POST">
+                <input type="text" name="email" placeholder="Email" aria-label="Email" autocomplete="nickname" required>
+                <input type="" name="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required>
+                <button type="submit" class="contrast">Login</button>
+              </form>
+            </div>
+          </article>
+        </main><!-- ./ Main -->
+    
+        <!-- Footer -->
+        <footer class="container-fluid">
+          <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+        </footer><!-- ./ Footer -->
+      </body>
+    </html>
+    "#)    
 }
 
 #[get("/start")]
@@ -262,28 +313,11 @@ fn mnemonic() -> content::RawHtml<&'static str> {
     "#)
 }
 
-#[get("/get/mnemonic")]
-fn get_mnemonic_route() -> String {
-    //Just testing code (will remove later)
-    let lines_vec = read_db();
-    let mut lines_vec_new = vec! [];
-    for ele in lines_vec {
-        println!("{}", ele);
-        lines_vec_new.push("New String per line that was there\n".to_string());
-    }
-    write_db(&mut lines_vec_new);
-    //end of testing code 
-
-    let rand_mnemonic = get_mnemonic();
-    let pass = get_password_from_mnemonic(&rand_mnemonic);
-    format!("Mnemonic: {}. So your password is {}!", rand_mnemonic, pass)
-}
-
 #[post("/create/password", data = "<new_user>")]
 fn new_password_user(new_user: Form<User>) -> content::RawHtml<&'static str> {
     if contains_at(&new_user) {
         if atleast_8(&new_user) && contains_two_nums(&new_user) {
-            println!("{} and {}", new_user.email, new_user.password);
+            create_db(&new_user);
             content::RawHtml(r#"
             <!doctype html>
             <html lang="en">
@@ -417,7 +451,7 @@ fn new_password_user(new_user: Form<User>) -> content::RawHtml<&'static str> {
 fn new_mnemonic_user(new_user: Form<User>) -> content::RawHtml<&'static str> {
     if contains_at(&new_user) {
         if mnemoic_in_list(&new_user) {
-            println!("{} and {}", new_user.email, new_user.password);
+            create_db(&new_user);
             content::RawHtml(r#"
             <!doctype html>
             <html lang="en">
@@ -547,8 +581,144 @@ fn new_mnemonic_user(new_user: Form<User>) -> content::RawHtml<&'static str> {
     }
 }
 
+#[post("/login/verify", data = "<user>")]
+fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
+    if contains_at(&user) {
+        let lines_vec = read_db(&user);
+        let mut split: Vec<String> = lines_vec[0].split_whitespace().map(str::to_string).collect();
+        if split[0] == user.password {
+            let my_str = &split[6];
+            split[6] = increment(my_str.to_string());
+            let string_to_write = String::from(format!("{} {} {} {} {} {} {}", split[0], split[1], split[2], split[3], split[4], split[5], split[6]));
+            write_db(string_to_write, &user);
+            content::RawHtml(r#"
+            <!doctype html>
+            <html lang="en">
+            
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Auth Experiment</title>
+                <meta name="description" content="Auth Experiment">
+                <!-- Pico.css -->
+                <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+              </head>
+            
+              <body>
+                <!-- Nav -->
+                <nav class="container-fluid">
+                </nav><!-- ./ Nav -->
+            
+                <!-- Main -->
+                <main class="container">
+                  <article class="grid">
+                    <div>
+                      <hgroup>
+                        <h1>Authentication Experiment</h1>
+                        <h2>Login Successful</h2>
+                      </hgroup>
+                        <p>At this point you have successfully logged into your account and earned another $1.</p>
+                      </form>
+                    </div>
+                  </article>
+                </main><!-- ./ Main -->
+                
+                <!-- Footer -->
+                <footer class="container-fluid">
+                  <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+                </footer><!-- ./ Footer -->
+              </body>
+            </html>
+            "#)
+        } else {
+            content::RawHtml(r#"
+            <!doctype html>
+            <html lang="en">
+            
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Auth Experiment</title>
+                <meta name="description" content="Auth Experiment">
+                <!-- Pico.css -->
+                <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+              </head>
+            
+              <body>
+                <!-- Nav -->
+                <nav class="container-fluid">
+                </nav><!-- ./ Nav -->
+            
+                <!-- Main -->
+                <main class="container">
+                  <article class="grid">
+                    <div>
+                      <hgroup>
+                        <h1>Authentication Experiment</h1>
+                        <h2>Error Login Not Successful</h2>
+                      </hgroup>
+                      <form action="/login" method="GET"> 
+                        <p>Password provided did not appear to be valid. Please use the back button and try again.</p>
+                        <button type="submit" class="contrast">Back</button>
+                      </form>
+                    </div>
+                  </article>
+                </main><!-- ./ Main -->
+                
+                <!-- Footer -->
+                <footer class="container-fluid">
+                  <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+                </footer><!-- ./ Footer -->
+              </body>
+            </html>
+            "#)
+        }
+    } else {
+        content::RawHtml(r#"
+        <!doctype html>
+        <html lang="en">
+        
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Auth Experiment</title>
+            <meta name="description" content="Auth Experiment">
+            <!-- Pico.css -->
+            <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+          </head>
+        
+          <body>
+            <!-- Nav -->
+            <nav class="container-fluid">
+            </nav><!-- ./ Nav -->
+        
+            <!-- Main -->
+            <main class="container">
+              <article class="grid">
+                <div>
+                  <hgroup>
+                    <h1>Authentication Experiment</h1>
+                    <h2>Error Login Not Successful</h2>
+                  </hgroup>
+                  <form action="/login" method="GET"> 
+                    <p>Email provided did not appear to be valid. Please use the back button and try again.</p>
+                    <button type="submit" class="contrast">Back</button>
+                  </form>
+                </div>
+              </article>
+            </main><!-- ./ Main -->
+            
+            <!-- Footer -->
+            <footer class="container-fluid">
+              <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+            </footer><!-- ./ Footer -->
+          </body>
+        </html>
+        "#)
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
-    setup_db();
-    rocket::build().mount("/", routes![index, mnemonic, password, get_mnemonic_route, new_password_user, new_mnemonic_user, start])
+    rocket::build().mount("/", routes![index, mnemonic, password, new_password_user, new_mnemonic_user, start, login, login_verify])
 }
