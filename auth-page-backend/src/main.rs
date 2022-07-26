@@ -8,7 +8,8 @@ use std::fs::File;
 use std::io::{self, BufRead, BufWriter, Write};
 use std::path::Path;
 
-const MNEMONICS: &'static [&'static str] = &["Please Excuse My Dear Aunt Sally", "Eggs Are Deliciously Good Breakfast Energy", "Fat Alley Cats Eat Alot Of Garbage", "All Cows Eat Lots Of Green Grass", "Goblins Bring Death For All Creatures"];
+const MNEMONICS: &'static [&'static str] = &["Please Excuse My Dear Aunt Sally 12", "Eggs Are Deliciously Good Breakfast Energy 34", "Fat Alley Cats Eat Alot Of Garbage 56", "All Cows Eat Lots Of Green Grass 78", "Goblins Bring Death For All Creatures 91"];
+const MNEMONICS_PASS: &'static [&'static str] = &["PEMDAS12", "EADGBE34", "FACEAOG45", "ACELOGG78", "GBDFAC91"];
 
 #[derive(FromForm)]
 struct User {
@@ -29,6 +30,44 @@ fn get_password_from_mnemonic(mnemonic: &String) -> String {
     .flat_map(|s| s.chars().nth(0)) // get the first char of each word
     .collect();                     // collect the result into a String
     return initials
+}
+
+fn contains_at(new_user: &Form<User>) -> bool {
+    if new_user.email.contains("@") {
+        true
+    } else {
+        false
+    }
+}
+
+fn atleast_8(new_user: &Form<User>) -> bool {
+    if new_user.password.chars().count() >= 8 {
+        true
+    } else {
+        false
+    }
+}
+
+fn contains_two_nums(new_user: &Form<User>) -> bool {
+    let mut count = 0;
+    for c in new_user.password.chars() {
+        if c.is_numeric() {
+            count += 1;
+        }
+    }
+    if count >= 2 {
+        true
+    } else {
+        false
+    }
+}
+
+fn mnemoic_in_list(new_user: &Form<User>) -> bool {
+    if MNEMONICS_PASS.contains(&new_user.password.as_str()) {
+        true
+    } else {
+        false
+    }
 }
 
 //Function source code from: https://doc.rust-lang.org/rust-by-example/std_misc/file/read_lines.html
@@ -241,13 +280,271 @@ fn get_mnemonic_route() -> String {
 }
 
 #[post("/create/password", data = "<new_user>")]
-fn new_password_user(new_user: Form<User>) -> &'static str {
-    "Password Account Created"
+fn new_password_user(new_user: Form<User>) -> content::RawHtml<&'static str> {
+    if contains_at(&new_user) {
+        if atleast_8(&new_user) && contains_two_nums(&new_user) {
+            println!("{} and {}", new_user.email, new_user.password);
+            content::RawHtml(r#"
+            <!doctype html>
+            <html lang="en">
+            
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Auth Experiment</title>
+                <meta name="description" content="Auth Experiment">
+                <!-- Pico.css -->
+                <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+              </head>
+            
+              <body>
+                <!-- Nav -->
+                <nav class="container-fluid">
+                </nav><!-- ./ Nav -->
+            
+                <!-- Main -->
+                <main class="container">
+                  <article class="grid">
+                    <div>
+                      <hgroup>
+                        <h1>Authentication Experiment</h1>
+                        <h2>Account Created</h2>
+                      </hgroup>
+                      <form action="/login" method="GET"> 
+                        <p>At this point you have successfully created your account and earned $1. Please login to continue the process, and to earn another $1!</p>
+                        <button type="submit" class="contrast">Login</button>
+                      </form>
+                    </div>
+                  </article>
+                </main><!-- ./ Main -->
+                
+                <!-- Footer -->
+                <footer class="container-fluid">
+                  <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+                </footer><!-- ./ Footer -->
+              </body>
+            </html>
+            "#)
+        } else {
+            content::RawHtml(r#"
+            <!doctype html>
+            <html lang="en">
+            
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Auth Experiment</title>
+                <meta name="description" content="Auth Experiment">
+                <!-- Pico.css -->
+                <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+              </head>
+            
+              <body>
+                <!-- Nav -->
+                <nav class="container-fluid">
+                </nav><!-- ./ Nav -->
+            
+                <!-- Main -->
+                <main class="container">
+                  <article class="grid">
+                    <div>
+                      <hgroup>
+                        <h1>Authentication Experiment</h1>
+                        <h2>Error Account Not Created</h2>
+                      </hgroup>
+                      <form action="/password" method="GET"> 
+                        <p>Password did not contain two numbers or it was not atleast 8 characters. Please use the back button and try again.</p>
+                        <button type="submit" class="contrast">Back</button>
+                      </form>
+                    </div>
+                  </article>
+                </main><!-- ./ Main -->
+                
+                <!-- Footer -->
+                <footer class="container-fluid">
+                  <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+                </footer><!-- ./ Footer -->
+              </body>
+            </html>
+            "#)
+        }
+    } else {
+        content::RawHtml(r#"
+        <!doctype html>
+        <html lang="en">
+        
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Auth Experiment</title>
+            <meta name="description" content="Auth Experiment">
+            <!-- Pico.css -->
+            <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+          </head>
+        
+          <body>
+            <!-- Nav -->
+            <nav class="container-fluid">
+            </nav><!-- ./ Nav -->
+        
+            <!-- Main -->
+            <main class="container">
+              <article class="grid">
+                <div>
+                  <hgroup>
+                    <h1>Authentication Experiment</h1>
+                    <h2>Error Account Not Created</h2>
+                  </hgroup>
+                  <form action="/password" method="GET"> 
+                    <p>Email provided did not appear to be valid. Please use the back button and try again.</p>
+                    <button type="submit" class="contrast">Back</button>
+                  </form>
+                </div>
+              </article>
+            </main><!-- ./ Main -->
+            
+            <!-- Footer -->
+            <footer class="container-fluid">
+              <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+            </footer><!-- ./ Footer -->
+          </body>
+        </html>
+        "#)
+    }
 }
 
 #[post("/create/mnemonic", data = "<new_user>")]
-fn new_mnemonic_user(new_user: Form<User>) -> &'static str {
-    "Mnemonic Account Created"
+fn new_mnemonic_user(new_user: Form<User>) -> content::RawHtml<&'static str> {
+    if contains_at(&new_user) {
+        if mnemoic_in_list(&new_user) {
+            println!("{} and {}", new_user.email, new_user.password);
+            content::RawHtml(r#"
+            <!doctype html>
+            <html lang="en">
+            
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Auth Experiment</title>
+                <meta name="description" content="Auth Experiment">
+                <!-- Pico.css -->
+                <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+              </head>
+            
+              <body>
+                <!-- Nav -->
+                <nav class="container-fluid">
+                </nav><!-- ./ Nav -->
+            
+                <!-- Main -->
+                <main class="container">
+                  <article class="grid">
+                    <div>
+                      <hgroup>
+                        <h1>Authentication Experiment</h1>
+                        <h2>Account Created</h2>
+                      </hgroup>
+                      <form action="/login" method="GET"> 
+                        <p>At this point you have successfully created your account and earned $1. Please login to continue the process, and to earn another $1!</p>
+                        <button type="submit" class="contrast">Login</button>
+                      </form>
+                    </div>
+                  </article>
+                </main><!-- ./ Main -->
+                
+                <!-- Footer -->
+                <footer class="container-fluid">
+                  <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+                </footer><!-- ./ Footer -->
+              </body>
+            </html>
+            "#)
+        } else {
+            content::RawHtml(r#"
+            <!doctype html>
+            <html lang="en">
+            
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Auth Experiment</title>
+                <meta name="description" content="Auth Experiment">
+                <!-- Pico.css -->
+                <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+              </head>
+            
+              <body>
+                <!-- Nav -->
+                <nav class="container-fluid">
+                </nav><!-- ./ Nav -->
+            
+                <!-- Main -->
+                <main class="container">
+                  <article class="grid">
+                    <div>
+                      <hgroup>
+                        <h1>Authentication Experiment</h1>
+                        <h2>Error Account Not Created</h2>
+                      </hgroup>
+                      <form action="/mnemonic" method="GET"> 
+                        <p>Mnemonic not a part of the approved list. Please use the back button and try again.</p>
+                        <button type="submit" class="contrast">Back</button>
+                      </form>
+                    </div>
+                  </article>
+                </main><!-- ./ Main -->
+                
+                <!-- Footer -->
+                <footer class="container-fluid">
+                  <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+                </footer><!-- ./ Footer -->
+              </body>
+            </html>
+            "#)   
+        }
+    } else {
+        content::RawHtml(r#"
+        <!doctype html>
+        <html lang="en">
+        
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Auth Experiment</title>
+            <meta name="description" content="Auth Experiment">
+            <!-- Pico.css -->
+            <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+          </head>
+        
+          <body>
+            <!-- Nav -->
+            <nav class="container-fluid">
+            </nav><!-- ./ Nav -->
+        
+            <!-- Main -->
+            <main class="container">
+              <article class="grid">
+                <div>
+                  <hgroup>
+                    <h1>Authentication Experiment</h1>
+                    <h2>Error Account Not Created</h2>
+                  </hgroup>
+                  <form action="/mnemonic" method="GET"> 
+                    <p>Email provided did not appear to be valid. Please use the back button and try again.</p>
+                    <button type="submit" class="contrast">Back</button>
+                  </form>
+                </div>
+              </article>
+            </main><!-- ./ Main -->
+            
+            <!-- Footer -->
+            <footer class="container-fluid">
+              <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+            </footer><!-- ./ Footer -->
+          </body>
+        </html>
+        "#)
+    }
 }
 
 #[launch]
