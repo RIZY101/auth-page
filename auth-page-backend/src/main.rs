@@ -587,8 +587,55 @@ fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
         let lines_vec = read_db(&user);
         let mut split: Vec<String> = lines_vec[0].split_whitespace().map(str::to_string).collect();
         if split[0] == user.password {
+          if split[6] == "2" {
+            content::RawHtml(r#"
+            <!doctype html>
+            <html lang="en">
+            
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Auth Experiment</title>
+                <meta name="description" content="Auth Experiment">
+                <!-- Pico.css -->
+                <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+              </head>
+            
+              <body>
+                <!-- Nav -->
+                <nav class="container-fluid">
+                </nav><!-- ./ Nav -->
+            
+                <!-- Main -->
+                <main class="container">
+                  <article class="grid">
+                    <div>
+                      <hgroup>
+                        <h1>Authentication Experiment</h1>
+                        <h2>Error Login Not Needed</h2>
+                      </hgroup>
+                      <form action="/login" method="GET"> 
+                        <p>This account has already logged in successfully twice, and has earned the full reward. If you think you got to this page by mistake please use the back button to login with your account.</p>
+                        <button type="submit" class="contrast">Back</button>
+                      </form>
+                    </div>
+                  </article>
+                </main><!-- ./ Main -->
+                
+                <!-- Footer -->
+                <footer class="container-fluid">
+                  <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+                </footer><!-- ./ Footer -->
+              </body>
+            </html>
+            "#)
+          } else {
+            //TODO add if to do the 24 hours stuff
+            //Also need the forgot my password one
             let my_str = &split[6];
             split[6] = increment(my_str.to_string());
+            let my_str2 = &split[4];
+            split[4] = increment(my_str2.to_string());
             let string_to_write = String::from(format!("{} {} {} {} {} {} {}", split[0], split[1], split[2], split[3], split[4], split[5], split[6]));
             write_db(string_to_write, &user);
             content::RawHtml(r#"
@@ -630,7 +677,12 @@ fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
               </body>
             </html>
             "#)
+          }
         } else {
+          let my_str = &split[4];
+          split[4] = increment(my_str.to_string());
+          let string_to_write = String::from(format!("{} {} {} {} {} {} {}", split[0], split[1], split[2], split[3], split[4], split[5], split[6]));
+          write_db(string_to_write, &user);
             content::RawHtml(r#"
             <!doctype html>
             <html lang="en">
