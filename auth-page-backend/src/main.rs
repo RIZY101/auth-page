@@ -27,6 +27,11 @@ struct User {
     password: String
 }
 
+#[derive(FromForm)]
+struct Forgot {
+    email: String
+}
+
 fn contains_at(new_user: &Form<User>) -> bool {
     if new_user.email.contains("@") {
         true
@@ -100,10 +105,32 @@ fn read_db(user: &Form<User>) -> Vec<String> {
     return lines_vec
 }
 
+//No traditional function overloading in rust :(
+fn read_db2(user: &Form<Forgot>) -> Vec<String> {
+  let path = String::from(format!("target/{}.db", user.email));
+  let mut lines_vec = vec![];
+  if let Ok(lines) = read_lines(path) {
+      for line in lines {
+          if let Ok(one_line) = line {
+              lines_vec.push(one_line.to_string());
+          }
+      }
+  }
+  return lines_vec
+}
+
 fn write_db(line: String, user: &Form<User>) {
     let path = String::from(format!("target/{}.db", user.email));
     let mut file = File::create(path).unwrap();
     file.write(line.as_bytes()).unwrap();
+
+}
+
+//No traditional function overloading in rust :(
+fn write_db2(line: String, user: &Form<Forgot>) {
+  let path = String::from(format!("target/{}.db", user.email));
+  let mut file = File::create(path).unwrap();
+  file.write(line.as_bytes()).unwrap();
 
 }
 
@@ -581,6 +608,149 @@ fn new_mnemonic_user(new_user: Form<User>) -> content::RawHtml<&'static str> {
     }
 }
 
+#[get("/forgot")]
+fn forgot() -> content::RawHtml<&'static str> {
+  content::RawHtml(r#"
+  <!doctype html>
+  <html lang="en">
+  
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Auth Experiment</title>
+      <meta name="description" content="Auth Experiment">
+      <!-- Pico.css -->
+      <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"> 
+    </head>
+  
+    <body>
+      <!-- Nav -->
+      <nav class="container-fluid">
+      </nav><!-- ./ Nav -->
+  
+      <!-- Main -->
+      <main class="container">
+        <article class="grid">
+          <div>
+            <hgroup>
+              <h1>Recover Account</h1>
+              <h2>Get Password/Mnemoic</h2>
+            </hgroup>
+            <form action="/forgot/password" method="POST">
+              <p>Enter your email to recieve your password/mnemonic used to login.</p>
+              <input type="text" name="email" placeholder="Email" aria-label="Email" autocomplete="nickname" required>
+              <button type="submit" class="contrast">Retrieve</button>
+            </form>
+          </div>
+        </article>
+      </main><!-- ./ Main -->
+  
+      <!-- Footer -->
+      <footer class="container-fluid">
+        <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+      </footer><!-- ./ Footer -->
+    </body>
+  </html>
+  "#)
+}
+
+#[post("/forgot/password",  data = "<user>")]
+fn forgot_pass(user: Form<Forgot>) -> content::RawHtml<String> {
+  let lines_vec = read_db2(&user);
+  if lines_vec.len() != 0 {
+    let mut split: Vec<String> = lines_vec[0].split_whitespace().map(str::to_string).collect();
+    let my_str = &split[5];
+    split[5] = increment(my_str.to_string());
+    let string_to_write = String::from(format!("{} {} {} {} {} {} {}", split[0], split[1], split[2], split[3], split[4], split[5], split[6]));
+    write_db2(string_to_write, &user);
+    let html = String::from(format!(r#"
+    <!doctype html>
+    <html lang="en">
+    
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Auth Experiment</title>
+        <meta name="description" content="Auth Experiment">
+        <!-- Pico.css -->
+        <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"> 
+      </head>
+    
+      <body>
+        <!-- Nav -->
+        <nav class="container-fluid">
+        </nav><!-- ./ Nav -->
+    
+        <!-- Main -->
+        <main class="container">
+          <article class="grid">
+            <div>
+              <hgroup>
+                <h1>Recover Account</h1>
+                <h2>Get Password/Mnemoic</h2>
+              </hgroup>
+              <form action="/login" method="GET">
+                <p>Your password is {}</p>
+                <button type="submit" class="contrast">Back To Login</button>
+              </form>
+            </div>
+          </article>
+        </main><!-- ./ Main -->
+    
+        <!-- Footer -->
+        <footer class="container-fluid">
+          <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+        </footer><!-- ./ Footer -->
+      </body>
+    </html>
+    "#, split[0]));
+    content::RawHtml(html)
+  } else {
+    let html = String::from(r#"
+    <!doctype html>
+    <html lang="en">
+
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Auth Experiment</title>
+        <meta name="description" content="Auth Experiment">
+        <!-- Pico.css -->
+        <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"> 
+      </head>
+
+      <body>
+        <!-- Nav -->
+        <nav class="container-fluid">
+        </nav><!-- ./ Nav -->
+
+        <!-- Main -->
+        <main class="container">
+          <article class="grid">
+            <div>
+              <hgroup>
+                <h1>Recover Account</h1>
+                <h2>Error Password/Mnemoic Not Found</h2>
+              </hgroup>
+              <form action="/forgot" method="GET">
+                <p>Your password could not be found. If you think this was in error try hitting the back button and try to enter your email again.</p>
+                <button type="submit" class="contrast">Back</button>
+              </form>
+            </div>
+          </article>
+        </main><!-- ./ Main -->
+
+        <!-- Footer -->
+        <footer class="container-fluid">
+          <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+        </footer><!-- ./ Footer -->
+      </body>
+    </html>
+    "#);
+    content::RawHtml(html)
+  }
+}
+
 #[post("/login/verify", data = "<user>")]
 fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
     if contains_at(&user) {
@@ -615,7 +785,7 @@ fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
                         <h2>Error Login Not Needed</h2>
                       </hgroup>
                       <form action="/login" method="GET"> 
-                        <p>This account has already logged in successfully twice, and has earned the full reward. If you think you got to this page by mistake please use the back button to login with your account.</p>
+                        <p>This account has already logged in successfully twice, and has earned the full reward. If you think you got to this page by mistake please use the back button to login with your account. Otherwise please take the exit survey located at this link:...</p>
                         <button type="submit" class="contrast">Back</button>
                       </form>
                     </div>
@@ -631,7 +801,6 @@ fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
             "#)
           } else {
             //TODO add if to do the 24 hours stuff
-            //Also need the forgot my password one
             let my_str = &split[6];
             split[6] = increment(my_str.to_string());
             let my_str2 = &split[4];
@@ -664,7 +833,7 @@ fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
                         <h1>Authentication Experiment</h1>
                         <h2>Login Successful</h2>
                       </hgroup>
-                        <p>At this point you have successfully logged into your account and earned another $1.</p>
+                        <p>At this point you have successfully logged into your account and earned another $1. If you have not logged in twice already please return to the login page in 24 hours and log in again. Please note you will also recieve an email reminder after it has been 24 hours, and hence when to return to the login page.</p>
                       </form>
                     </div>
                   </article>
@@ -713,6 +882,10 @@ fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
                         <p>Password provided did not appear to be valid. Please use the back button and try again.</p>
                         <button type="submit" class="contrast">Back</button>
                       </form>
+                      <form action="/forgot" method="GET"> 
+                      <p>Or use the forgot my password button to obtain your password.</p>
+                      <button type="submit" class="contrast">Forgot Password</button>
+                    </form>
                     </div>
                   </article>
                 </main><!-- ./ Main -->
@@ -772,5 +945,5 @@ fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, mnemonic, password, new_password_user, new_mnemonic_user, start, login, login_verify])
+    rocket::build().mount("/", routes![index, mnemonic, password, new_password_user, new_mnemonic_user, start, login, login_verify, forgot, forgot_pass])
 }
