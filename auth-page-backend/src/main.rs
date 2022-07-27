@@ -8,8 +8,8 @@ use std::io::{self, BufRead, Write};
 use std::path::Path;
 use chrono;
 
-//const MNEMONICS: &'static [&'static str] = &["Please Excuse My Dear Aunt Sally 12", "Eggs Are Deliciously Good Breakfast Energy 34", "Fat Alley Cats Eat Alot Of Garbage 56", "All Cows Eat Lots Of Green Grass 78", "Goblins Bring Death For All Creatures 91"];
-const MNEMONICS_PASS: &'static [&'static str] = &["PEMDAS12", "EADGBE34", "FACEAOG45", "ACELOGG78", "GBDFAC91"];
+const MNEMONICS: &'static [&'static str] = &["Please Excuse My Dear Aunt Sally 12", "Eggs Are Deliciously Good Breakfast Energy 34", "Fat Alley Cats Eat Alot Of Garbage 56", "All Cows Eat Lots Of Green Grass 78", "Goblins Bring Death For All Creatures 91"];
+const MNEMONICS_PASS: &'static [&'static str] = &["PEMDAS12", "EADGBE34", "FACEAOG56", "ACELOGG78", "GBDFAC91"];
 
 //enum DbContent {
 //    Password,
@@ -70,10 +70,29 @@ fn mnemoic_in_list(new_user: &Form<User>) -> bool {
     }
 }
 
+fn mnemoic_in_list_str(string: &str) -> bool {
+  if MNEMONICS_PASS.contains(&string) {
+      true
+  } else {
+      false
+  }
+}
+
 fn increment(str: String) -> String {
     let mut integer = str.parse::<i32>().unwrap();
     integer += 1;
     integer.to_string()
+}
+
+fn get_mnemoic_index_from_str(string: &str) -> usize {
+  match string {
+    "PEMDAS12"  => 0,
+    "EADGBE34"  => 1, 
+    "FACEAOG56" => 2, 
+    "ACELOGG78" => 3, 
+    "GBDFAC91"  => 4,
+    _           => 0
+  }
 }
 
 //Function source code from: https://doc.rust-lang.org/rust-by-example/std_misc/file/read_lines.html
@@ -163,7 +182,13 @@ fn index() -> content::RawHtml<&'static str> {
                 <h2>Insrtuctions</h2>
               </hgroup>
               <form action="/start" method="GET"> 
-                <p>By using this website you are agreeing to taking part in a controlled experiment about web service authentication. In this experiment you will be given one of two authentication methods to use. A standard password, or a mnemoic. You will recieve up to $4 for completing the experiment. $1 for creating an account with your assinged method, $1 for logging in after creating an account, $1 for logging in a second time 24 hours from your first login attempt, and $1 for completing the short exit survey. Please note if you can not remember your password you can use the forgot my pasword button on the login page in order to login (doing this will still count towards your $1 for that task). You will recieve an email reminding you to login after 24 hours has passed, and one asking what your prefered payment method is after completing the experiment. Please note all traffic is encrypted over https and industry leading password hashing (Argon2) and protection techinques so your data is safe and secure from malicous actors. Click the button bellow to get started.</p>
+                <p>By using this website you are agreeing to taking part in a controlled experiment about web service authentication. In this experiment you will be given one of two authentication methods to use, a standard password or a mnemonic (more about this method will be explained if you get selected for it). 
+                You will recieve up to $4 for completing the whole experiment. $1 for creating an account with your assinged method, $1 for logging in after creating an account, $1 for logging in a second time 24 hours from your first successful login, and $1 for completing the short exit survey. 
+                Please note if you can not remember your password you can use the forgot my pasword button in order to retrieve your password and then achieve a successful login. 
+                Also you will recieve an email reminding you to login after 24 hours has passed, and one reminding you to take the exit survey which will also ask what your prefered payment method is after completing the experiment (2 successful logins). 
+                Lastly please note all traffic is encrypted over https, but we will be statistically and heuristically evaluating the passwords you provide. Once these statistics and results have been finished your password data will be deleted. 
+                If you have any poroblems, questions, or concerns please email rizins@berkeley.edu <br> <br>
+                Click the button bellow to get started.</p>
                 <button type="submit" class="contrast">Start</button>
               </form>
             </div>
@@ -273,7 +298,7 @@ fn password() -> content::RawHtml<&'static str> {
             <div>
             <hgroup>
               <h1>Rules</h1>
-              <h2>Please ensure that your password meets the length complexity of...</h2>
+              <h2>Please ensure that your password is atleast 8 characters and conatins 2 numbers.</h2>
             </hgroup>
             </div>
           </article>
@@ -325,7 +350,13 @@ fn mnemonic() -> content::RawHtml<&'static str> {
             <div>
             <hgroup>
               <h1>Rules</h1>
-              <h2>Please use the generator to choose a mnemonic. Then type the first letter of each word in the phrase into the password box...</h2>
+              <p>A mnemonic is a pattern of letters, ideas, or associations that help you remember something. In this case you can choose one of the five mnemonics bellow to use as your password, and hopefully the silly sentence 
+              will help you remember the password it is associated with. Please note you must use one of the passwords associated with the mnemonic sentence located after the "->", and yes it must be entered with all capital letters.</p>
+              <p>"Please Excuse My Dear Aunt Sally 12" -> PEMDAS12 <br>
+              "Eggs Are Deliciously Good Breakfast Energy 34" -> EADGBE34 <br>
+              "Fat Alley Cats Eat Alot Of Garbage 56" -> FACEAOG56 <br>
+              "All Cows Eat Lots Of Green Grass 78" -> ACELOGG78 <br>
+              "Goblins Bring Death For All Creatures 91" -> GBDFAC91 </p>
             </hgroup>
             </div>
           </article>
@@ -414,7 +445,7 @@ fn new_password_user(new_user: Form<User>) -> content::RawHtml<&'static str> {
                         <h2>Error Account Not Created</h2>
                       </hgroup>
                       <form action="/password" method="GET"> 
-                        <p>Password did not contain two numbers or it was not atleast 8 characters. Please use the back button and try again.</p>
+                        <p>Password did not contain two numbers, or it was not atleast 8 characters. Please use the back button and try again.</p>
                         <button type="submit" class="contrast">Back</button>
                       </form>
                     </div>
@@ -659,52 +690,101 @@ fn forgot_pass(user: Form<Forgot>) -> content::RawHtml<String> {
   let lines_vec = read_db2(&user);
   if lines_vec.len() != 0 {
     let mut split: Vec<String> = lines_vec[0].split_whitespace().map(str::to_string).collect();
-    let my_str = &split[5];
-    split[5] = increment(my_str.to_string());
-    let string_to_write = String::from(format!("{} {} {} {} {} {} {}", split[0], split[1], split[2], split[3], split[4], split[5], split[6]));
-    write_db2(string_to_write, &user);
-    let html = String::from(format!(r#"
-    <!doctype html>
-    <html lang="en">
-    
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Auth Experiment</title>
-        <meta name="description" content="Auth Experiment">
-        <!-- Pico.css -->
-        <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"> 
-      </head>
-    
-      <body>
-        <!-- Nav -->
-        <nav class="container-fluid">
-        </nav><!-- ./ Nav -->
-    
-        <!-- Main -->
-        <main class="container">
-          <article class="grid">
-            <div>
-              <hgroup>
-                <h1>Recover Account</h1>
-                <h2>Get Password/Mnemoic</h2>
-              </hgroup>
-              <form action="/login" method="GET">
-                <p>Your password is {}</p>
-                <button type="submit" class="contrast">Back To Login</button>
-              </form>
-            </div>
-          </article>
-        </main><!-- ./ Main -->
-    
-        <!-- Footer -->
-        <footer class="container-fluid">
-          <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
-        </footer><!-- ./ Footer -->
-      </body>
-    </html>
-    "#, split[0]));
-    content::RawHtml(html)
+    if mnemoic_in_list_str(split[0].as_str()) {
+      let my_str = &split[5];
+      split[5] = increment(my_str.to_string());
+      let string_to_write = String::from(format!("{} {} {} {} {} {} {}", split[0], split[1], split[2], split[3], split[4], split[5], split[6]));
+      write_db2(string_to_write, &user);
+      let html = String::from(format!(r#"
+      <!doctype html>
+      <html lang="en">
+      
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Auth Experiment</title>
+          <meta name="description" content="Auth Experiment">
+          <!-- Pico.css -->
+          <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"> 
+        </head>
+      
+        <body>
+          <!-- Nav -->
+          <nav class="container-fluid">
+          </nav><!-- ./ Nav -->
+      
+          <!-- Main -->
+          <main class="container">
+            <article class="grid">
+              <div>
+                <hgroup>
+                  <h1>Recover Account</h1>
+                  <h2>Get Password/Mnemoic</h2>
+                </hgroup>
+                <form action="/login" method="GET">
+                  <p>Your password is "{}" -> {}</p>
+                  <button type="submit" class="contrast">Back To Login</button>
+                </form>
+              </div>
+            </article>
+          </main><!-- ./ Main -->
+      
+          <!-- Footer -->
+          <footer class="container-fluid">
+            <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+          </footer><!-- ./ Footer -->
+        </body>
+      </html>
+      "#, split[0], MNEMONICS[get_mnemoic_index_from_str(split[0].as_str())]));
+      content::RawHtml(html)
+    } else {
+      let my_str = &split[5];
+      split[5] = increment(my_str.to_string());
+      let string_to_write = String::from(format!("{} {} {} {} {} {} {}", split[0], split[1], split[2], split[3], split[4], split[5], split[6]));
+      write_db2(string_to_write, &user);
+      let html = String::from(format!(r#"
+      <!doctype html>
+      <html lang="en">
+      
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Auth Experiment</title>
+          <meta name="description" content="Auth Experiment">
+          <!-- Pico.css -->
+          <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"> 
+        </head>
+      
+        <body>
+          <!-- Nav -->
+          <nav class="container-fluid">
+          </nav><!-- ./ Nav -->
+      
+          <!-- Main -->
+          <main class="container">
+            <article class="grid">
+              <div>
+                <hgroup>
+                  <h1>Recover Account</h1>
+                  <h2>Get Password/Mnemoic</h2>
+                </hgroup>
+                <form action="/login" method="GET">
+                  <p>Your password is {}</p>
+                  <button type="submit" class="contrast">Back To Login</button>
+                </form>
+              </div>
+            </article>
+          </main><!-- ./ Main -->
+      
+          <!-- Footer -->
+          <footer class="container-fluid">
+            <small>Built using  <a href="https://picocss.com" class="secondary">Pico CSS</a>
+          </footer><!-- ./ Footer -->
+        </body>
+      </html>
+      "#, split[0]));
+      content::RawHtml(html)
+    }
   } else {
     let html = String::from(r#"
     <!doctype html>
@@ -785,7 +865,7 @@ fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
                         <h2>Error Login Not Needed</h2>
                       </hgroup>
                       <form action="/login" method="GET"> 
-                        <p>This account has already logged in successfully twice, and has earned the full reward. If you think you got to this page by mistake please use the back button to login with your account. Otherwise please take the exit survey located at this link:...</p>
+                        <p>This account has already logged in successfully twice, and has earned the full reward. If you think you got to this page by mistake please use the back button to login with your account. Otherwise please take the exit survey located at this <a href="https://docs.google.com/forms/d/e/1FAIpQLSdwg_2f8VTTEXKVzi1As2gGk9NrUgxCx4gRntdE514YS8N5gQ/viewform">link</a>.</p>
                         <button type="submit" class="contrast">Back</button>
                       </form>
                     </div>
@@ -833,7 +913,8 @@ fn login_verify(user: Form<User>) -> content::RawHtml<&'static str> {
                         <h1>Authentication Experiment</h1>
                         <h2>Login Successful</h2>
                       </hgroup>
-                        <p>At this point you have successfully logged into your account and earned another $1. If you have not logged in twice already please return to the login page in 24 hours and log in again. Please note you will also recieve an email reminder after it has been 24 hours, and hence when to return to the login page.</p>
+                        <p>At this point you have successfully logged into your account and earned another $1. If you have not logged in twice already please return to the login page in 24 hours and log in again. Please note you will also recieve an email reminder after it has been 24 hours, and hence when to return to the login page.
+                        If this is your second successful login please complete the exit survey located at this <a href="https://docs.google.com/forms/d/e/1FAIpQLSdwg_2f8VTTEXKVzi1As2gGk9NrUgxCx4gRntdE514YS8N5gQ/viewform">link</a>.</p>
                       </form>
                     </div>
                   </article>
