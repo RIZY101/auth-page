@@ -735,7 +735,7 @@ fn forgot_pass(user: Form<Forgot>) -> content::RawHtml<String> {
           </footer><!-- ./ Footer -->
         </body>
       </html>
-      "#, split[0], MNEMONICS[get_mnemoic_index_from_str(split[0].as_str())]));
+      "#, MNEMONICS[get_mnemoic_index_from_str(split[0].as_str())], split[0]));
       content::RawHtml(html)
     } else {
       let my_str = &split[5];
