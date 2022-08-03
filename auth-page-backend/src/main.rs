@@ -184,11 +184,11 @@ fn index() -> content::RawHtml<&'static str> {
               <form action="/start" method="GET"> 
                 <p>By using this website you are agreeing to taking part in a controlled experiment about web service authentication. In this experiment you will be given one of two authentication methods to use, a standard password or a mnemonic (more about this method will be explained if you get selected for it). 
                 You will recieve up to $4 for completing the whole experiment. $1 for creating an account with your assinged method, $1 for logging in after creating an account, $1 for logging in a second time 24 hours from your first successful login, and $1 for completing the short exit survey. 
-                Please note if you can not remember your password you can use the forgot my pasword button in order to retrieve your password and then achieve a successful login. 
-                Also you will recieve an email reminding you to login after 24 hours has passed, and one reminding you to take the exit survey which will also ask what your prefered payment method is after completing the experiment (2 successful logins). 
+                Please note if you can not remember your password you can use the forgot my password button in order to retrieve your password and then achieve a successful login. 
+                Also you will recieve an email reminding you to login after 24 hours has passed, and one reminding you to take the exit survey which will also ask what your preferred payment method is after completing the experiment (2 successful logins). 
                 Lastly please note all traffic is encrypted over https, but we will be statistically and heuristically evaluating the passwords you provide. Once these statistics and results have been finished your password data will be deleted. 
-                If you have any poroblems, questions, or concerns please email rizins@berkeley.edu <br> <br>
-                Click the button bellow to get started.</p>
+                If you have any problems, questions, or concerns please email rizins@berkeley.edu <br> <br>
+                Click the button below to get started.</p>
                 <button type="submit" class="contrast">Start</button>
               </form>
             </div>
